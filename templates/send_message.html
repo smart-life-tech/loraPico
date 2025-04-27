@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoraPico POCSAG - Send Message</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #475569;
+            --light: #f8fafc;
+            --dark: #1e293b;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f1f5f9;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .navbar-brand h1 {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .nav-link {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-link:hover {
+            color: var(--primary);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        
+        .page-title {
+            margin-bottom: 2rem;
+            color: var(--dark);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .page-title i {
+            color: var(--primary);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .message-counter {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 0.8rem;
+            color: var(--secondary);
+            margin-top: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        
+        .transmission-status {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #f0fdf4;
+            border-radius: 8px;
+            border-left: 4px solid var(--success);
+        }
+        
+        .transmission-status h3 {
+            color: var(--success);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .transmission-status p {
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: var(--secondary);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="#" class="navbar-brand">
+            <h1>LoraPico</h1>
+        </a>
+        <div class="navbar-nav">
+            <a href="{{ url_for('logout') }}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <h1 class="page-title">
+            <i class="fas fa-broadcast-tower"></i> Send POCSAG Message
+        </h1>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label for="address">Pager Address</label>
+                <input type="text" id="address" name="address" class="form-control" required pattern="\d+" placeholder="Enter numeric pager address">
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Message Content</label>
+                <input type="text" id="message" name="message" class="form-control" required maxlength="40" placeholder="Enter your message (max 40 characters)">
+                <div class="message-counter">
+                    <span id="char-count">0</span>/40 characters
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">
+                <i class="fas fa-paper-plane"></i> Send Message
+            </button>
+        </form>
+        
+        <!-- This section would be shown conditionally after a successful transmission -->
+        <div class="transmission-status" style="display: none;">
+            <h3><i class="fas fa-check-circle"></i> Transmission Successful</h3>
+            <p>Your message has been successfully transmitted to the pager address.</p>
+        </div>
+        
+        <div class="footer">
+            © 2023 LoraPico POCSAG Transmitter | 930MHz Band
+        </div>
+    </div>
+    
+    <script>
+        // Character counter for message input
+        const messageInput = document.getElementById('message');
+        const charCount = document.getElementById('char-count');
+        
+        messageInput.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+    </script>
+</body>
+</html>
