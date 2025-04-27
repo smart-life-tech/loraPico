@@ -328,6 +328,32 @@
                 opacity: 1;
             }
         }
+        
+        .frequency-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .frequency-control input {
+            flex: 1;
+        }
+        
+        .frequency-unit {
+            color: var(--secondary);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-col {
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -382,9 +408,22 @@
         </h1>
         
         <form method="POST" id="messageForm">
-            <div class="form-group">
-                <label for="address">Pager Address</label>
-                <input type="text" id="address" name="address" class="form-control" required pattern="\d+" placeholder="Enter numeric pager address">
+            <div class="form-row">
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="address">Pager Address</label>
+                        <input type="text" id="address" name="address" class="form-control" required pattern="\d+" placeholder="Enter numeric pager address">
+                    </div>
+                </div>
+                <div class="form-col">
+                    <div class="form-group">
+                        <label for="frequency">Transmit Frequency</label>
+                        <div class="frequency-control">
+                            <input type="number" id="frequency" name="frequency" class="form-control" required min="929.0" max="932.0" step="0.025" value="930.000" placeholder="930.000">
+                            <span class="frequency-unit">MHz</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -404,12 +443,12 @@
         {% if message_sent %}
         <div class="transmission-status">
             <h3><i class="fas fa-check-circle"></i> Transmission Successful</h3>
-            <p>Your message has been successfully transmitted to the pager address.</p>
+            <p>Your message has been successfully transmitted to the pager address at {{ frequency }} MHz.</p>
         </div>
         {% endif %}
         
         <div class="footer">
-            © 2023 LoraPico POCSAG Transmitter | 930MHz Band
+            © 2025 LoraPico POCSAG Transmitter | 929-932 MHz Band
         </div>
     </div>
     
@@ -433,6 +472,12 @@
             }
         });
         
+        // Format frequency to 3 decimal places
+        const frequencyInput = document.getElementById('frequency');
+        frequencyInput.addEventListener('change', function() {
+            this.value = parseFloat(this.value).toFixed(3);
+        });
+        
         // Form submission with loading overlay
         const messageForm = document.getElementById('messageForm');
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -441,12 +486,17 @@
             // Validate form
             const address = document.getElementById('address').value;
             const message = document.getElementById('message').value;
+            const frequency = parseFloat(document.getElementById('frequency').value);
             
             if (!address.match(/^\d+$/)) {
                 return false;
             }
             
             if (message.length === 0 || message.length > 40) {
+                return false;
+            }
+            
+            if (frequency < 929.0 || frequency > 932.0) {
                 return false;
             }
             

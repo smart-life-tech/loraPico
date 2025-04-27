@@ -98,12 +98,21 @@ def login():
 def send_message():
     message_sent = False
     error_message = None
+    frequency = 930.000  # Default frequency
     
     if request.method == 'POST':
         address = request.form['address']
         message = request.form['message']
         
-        # Improved input validation
+        # Get and validate frequency
+        try:
+            frequency = float(request.form['frequency'])
+            if frequency < 929.0 or frequency > 932.0:
+                error_message = 'Frequency must be between 929.0 and 932.0 MHz'
+        except ValueError:
+            error_message = 'Invalid frequency format'
+        
+        # Validate other input
         if not address.isdigit():
             error_message = 'Address must contain only numbers'
         elif int(address) <= 0:
@@ -116,11 +125,12 @@ def send_message():
             # Send to RP2040
             if ser is not None and ser.is_open:
                 try:
-                    command = f"{address}:{message}\n"
+                    # Include frequency in the command
+                    command = f"{address}:{message}:{frequency:.3f}\n"
                     ser.write(command.encode())
                     ser.flush()
                     message_sent = True
-                    flash('Message sent successfully!', 'success')
+                    flash(f'Message sent successfully at {frequency:.3f} MHz!', 'success')
                 except serial.SerialException as e:
                     error_message = f'Error sending message: {str(e)}'
             else:
@@ -129,7 +139,7 @@ def send_message():
         if error_message:
             flash(error_message, 'danger')
     
-    return render_template('send_message.html', message_sent=message_sent)
+    return render_template('send_message.html', message_sent=message_sent, frequency=f"{frequency:.3f}")
 
 @app.route('/logout')
 @login_required

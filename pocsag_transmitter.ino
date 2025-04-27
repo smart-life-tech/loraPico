@@ -157,14 +157,50 @@ void loop()
     if (Serial.available())
     {
         String input = Serial.readStringUntil('\n');
-        char *address = strtok((char *)input.c_str(), ":");
-        char *message = strtok(NULL, "\n");
-        if (address && message && strlen(message) <= MAX_MESSAGE_LEN)
+        
+        // Parse input with format "address:message:frequency"
+        int firstColon = input.indexOf(':');
+        int lastColon = input.lastIndexOf(':');
+        
+        if (firstColon > 0 && lastColon > firstColon)
         {
-            encode_pocsag(address, message, bitstream);
-            digitalWrite(SX1262_ANT, HIGH);                                // Enable TX
-            radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
-            digitalWrite(SX1262_ANT, LOW);                                 // Disable TX
+            String addressStr = input.substring(0, firstColon);
+            String messageStr = input.substring(firstColon + 1, lastColon);
+            String frequencyStr = input.substring(lastColon + 1);
+            
+            float frequency = frequencyStr.toFloat();
+            
+            // Validate inputs
+            if (addressStr.length() > 0 && messageStr.length() <= MAX_MESSAGE_LEN && 
+                frequency >= 929.0 && frequency <= 932.0)
+            {
+                // Set the frequency
+                int state = radio.setFrequency(frequency);
+                if (state != RADIOLIB_ERR_NONE)
+                {
+                    Serial.print(F("Frequency setting failed, code "));
+                    Serial.println(state);
+                    return;
+                }
+                
+                // Encode and transmit
+                encode_pocsag(addressStr.c_str(), messageStr.c_str(), bitstream);
+                digitalWrite(SX1262_ANT, HIGH);                                // Enable TX
+                radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
+                digitalWrite(SX1262_ANT, LOW);                                 // Disable TX
+                
+                Serial.print(F("Message sent at "));
+                Serial.print(frequency, 3);
+                Serial.println(F(" MHz"));
+            }
+            else
+            {
+                Serial.println(F("Invalid input parameters"));
+            }
+        }
+        else
+        {
+            Serial.println(F("Invalid input format. Use 'address:message:frequency'"));
         }
     }
 }
