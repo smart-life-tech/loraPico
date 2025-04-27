@@ -1,5 +1,6 @@
 #include <RadioLib.h>
 #include <string.h>
+#include <SPI.h>
 
 // SX1262 pin definitions
 #define SX1262_CS 13   // GP13
@@ -11,7 +12,7 @@
 #define SX1262_ANT 17  // GP17 (Antenna switch)
 
 // SX1262 instance
-SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI);
+SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
 
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
@@ -112,11 +113,14 @@ void setup()
     while (!Serial)
         ;
 
-    // Initialize SPI
-    SPI.setSCK(SX1262_SCK);
-    SPI.setTX(SX1262_MOSI);
-    SPI.setRX(SX1262_MISO);
+    // Initialize SPI with correct pins for Raspberry Pi Pico
+    // Use the standard SPI.begin() method and configure pins separately
     SPI.begin();
+
+    // Set up GPIO pins for SPI manually
+    pinMode(SX1262_SCK, OUTPUT);
+    pinMode(SX1262_MOSI, OUTPUT);
+    pinMode(SX1262_MISO, INPUT);
 
     // Initialize SX1262
     int state = radio.beginFSK();
