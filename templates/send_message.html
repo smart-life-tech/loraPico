@@ -14,6 +14,8 @@
             --dark: #1e293b;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
         }
         
         * {
@@ -126,6 +128,14 @@
             margin-top: 0.5rem;
         }
         
+        .message-counter.warning {
+            color: var(--warning);
+        }
+        
+        .message-counter.danger {
+            color: var(--danger);
+        }
+        
         .btn {
             padding: 0.75rem 1.5rem;
             background-color: var(--primary);
@@ -159,6 +169,7 @@
             background-color: #f0fdf4;
             border-radius: 8px;
             border-left: 4px solid var(--success);
+            animation: fadeIn 0.5s ease-out;
         }
         
         .transmission-status h3 {
@@ -180,9 +191,180 @@
             color: var(--secondary);
             font-size: 0.8rem;
         }
+        
+        /* Flash messages styling */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 350px;
+        }
+        
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        .flash-message.danger {
+            background-color: #fef2f2;
+            border-left: 4px solid var(--danger);
+            color: #b91c1c;
+        }
+        
+        .flash-message.success {
+            background-color: #f0fdf4;
+            border-left: 4px solid var(--success);
+            color: #166534;
+        }
+        
+        .flash-message.info {
+            background-color: #eff6ff;
+            border-left: 4px solid var(--info);
+            color: #1e40af;
+        }
+        
+        .flash-message.warning {
+            background-color: #fffbeb;
+            border-left: 4px solid var(--warning);
+            color: #b45309;
+        }
+        
+        .flash-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .flash-icon {
+            font-size: 1.25rem;
+        }
+        
+        .flash-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .flash-close {
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 1.25rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .flash-close:hover {
+            opacity: 1;
+        }
+        
+        /* Loading spinner for message sending */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .loading-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Flash messages container -->
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        <div class="flash-content">
+                            <div class="flash-icon">
+                                {% if category == 'danger' %}
+                                    <i class="fas fa-exclamation-circle"></i>
+                                {% elif category == 'success' %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% elif category == 'info' %}
+                                    <i class="fas fa-info-circle"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flash-text">{{ message }}</div>
+                        </div>
+                        <button class="flash-close" onclick="this.parentElement.style.display='none'">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
     <nav class="navbar">
         <a href="#" class="navbar-brand">
             <h1>LoraPico</h1>
@@ -199,7 +381,7 @@
             <i class="fas fa-broadcast-tower"></i> Send POCSAG Message
         </h1>
         
-        <form method="POST">
+        <form method="POST" id="messageForm">
             <div class="form-group">
                 <label for="address">Pager Address</label>
                 <input type="text" id="address" name="address" class="form-control" required pattern="\d+" placeholder="Enter numeric pager address">
@@ -213,19 +395,21 @@
                 </div>
             </div>
             
-            <button type="submit" class="btn">
+            <button type="submit" class="btn" id="sendButton">
                 <i class="fas fa-paper-plane"></i> Send Message
             </button>
         </form>
         
         <!-- This section would be shown conditionally after a successful transmission -->
-        <div class="transmission-status" style="display: none;">
+        {% if message_sent %}
+        <div class="transmission-status">
             <h3><i class="fas fa-check-circle"></i> Transmission Successful</h3>
             <p>Your message has been successfully transmitted to the pager address.</p>
         </div>
+        {% endif %}
         
         <div class="footer">
-            © 2025 LoraPico POCSAG Transmitter | 930MHz Band
+            © 2023 LoraPico POCSAG Transmitter | 930MHz Band
         </div>
     </div>
     
@@ -233,9 +417,57 @@
         // Character counter for message input
         const messageInput = document.getElementById('message');
         const charCount = document.getElementById('char-count');
+        const counterDisplay = document.querySelector('.message-counter');
         
         messageInput.addEventListener('input', function() {
-            charCount.textContent = this.value.length;
+            const length = this.value.length;
+            charCount.textContent = length;
+            
+            // Change counter color based on length
+            if (length > 30 && length <= 35) {
+                counterDisplay.className = 'message-counter warning';
+            } else if (length > 35) {
+                counterDisplay.className = 'message-counter danger';
+            } else {
+                counterDisplay.className = 'message-counter';
+            }
+        });
+        
+        // Form submission with loading overlay
+        const messageForm = document.getElementById('messageForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        messageForm.addEventListener('submit', function() {
+            // Validate form
+            const address = document.getElementById('address').value;
+            const message = document.getElementById('message').value;
+            
+            if (!address.match(/^\d+$/)) {
+                return false;
+            }
+            
+            if (message.length === 0 || message.length > 40) {
+                return false;
+            }
+            
+            // Show loading overlay
+            loadingOverlay.classList.add('active');
+            
+            // Form will submit normally
+            return true;
+        });
+        
+        // Auto-dismiss flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.animation = 'fadeOut 0.5s forwards';
+                    setTimeout(function() {
+                        message.style.display = 'none';
+                    }, 500);
+                }, 5000);
+            });
         });
     </script>
 </body>

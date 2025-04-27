@@ -14,6 +14,8 @@
             --dark: #1e293b;
             --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
         }
         
         * {
@@ -125,9 +127,131 @@
             color: var(--secondary);
             font-size: 0.8rem;
         }
+        
+        /* Flash messages styling */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 350px;
+        }
+        
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        .flash-message.danger {
+            background-color: #fef2f2;
+            border-left: 4px solid var(--danger);
+            color: #b91c1c;
+        }
+        
+        .flash-message.success {
+            background-color: #f0fdf4;
+            border-left: 4px solid var(--success);
+            color: #166534;
+        }
+        
+        .flash-message.info {
+            background-color: #eff6ff;
+            border-left: 4px solid var(--info);
+            color: #1e40af;
+        }
+        
+        .flash-message.warning {
+            background-color: #fffbeb;
+            border-left: 4px solid var(--warning);
+            color: #b45309;
+        }
+        
+        .flash-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .flash-icon {
+            font-size: 1.25rem;
+        }
+        
+        .flash-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .flash-close {
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 1.25rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .flash-close:hover {
+            opacity: 1;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Flash messages container -->
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        <div class="flash-content">
+                            <div class="flash-icon">
+                                {% if category == 'danger' %}
+                                    <i class="fas fa-exclamation-circle"></i>
+                                {% elif category == 'success' %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% elif category == 'info' %}
+                                    <i class="fas fa-info-circle"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flash-text">{{ message }}</div>
+                        </div>
+                        <button class="flash-close" onclick="this.parentElement.style.display='none'">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
     <div class="container">
         <div class="logo">
             <h1>LoraPico</h1>
@@ -160,5 +284,20 @@
             © 2025 LoraPico POCSAG Transmitter
         </div>
     </div>
+
+    <script>
+        // Auto-dismiss flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.animation = 'fadeOut 0.5s forwards';
+                    setTimeout(function() {
+                        message.style.display = 'none';
+                    }, 500);
+                }, 5000);
+            });
+        });
+    </script>
 </body>
 </html>
