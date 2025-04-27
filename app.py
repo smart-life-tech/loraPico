@@ -98,21 +98,13 @@ def login():
 def send_message():
     message_sent = False
     error_message = None
-    frequency = 930.000  # Default frequency
+    arduino_response = None
     
     if request.method == 'POST':
         address = request.form['address']
         message = request.form['message']
         
-        # Get and validate frequency
-        try:
-            frequency = float(request.form['frequency'])
-            if frequency < 929.0 or frequency > 932.0:
-                error_message = 'Frequency must be between 929.0 and 932.0 MHz'
-        except ValueError:
-            error_message = 'Invalid frequency format'
-        
-        # Validate other input
+        # Improved input validation
         if not address.isdigit():
             error_message = 'Address must contain only numbers'
         elif int(address) <= 0:
@@ -125,12 +117,34 @@ def send_message():
             # Send to RP2040
             if ser is not None and ser.is_open:
                 try:
-                    # Include frequency in the command
-                    command = f"{address}:{message}:{frequency:.3f}\n"
+                    command = f"{address}:{message}\n"
                     ser.write(command.encode())
                     ser.flush()
-                    message_sent = True
-                    flash(f'Message sent successfully at {frequency:.3f} MHz!', 'success')
+                    
+                    # Wait for and read the response from Arduino
+                    # Set a timeout for reading the response
+                    timeout = time.time() + 5  # 5 second timeout
+                    response_data = ""
+                    
+                    while time.time() < timeout:
+                        if ser.in_waiting > 0:
+                            line = ser.readline().decode('utf-8').strip()
+                            response_data += line
+                            if "success" in line.lower() or "error" in line.lower() or "complete" in line.lower():
+                                break
+                    
+                    if response_data:
+                        arduino_response = response_data
+                        message_sent = "error" not in response_data.lower()
+                        if message_sent:
+                            flash('Message sent successfully!', 'success')
+                        else:
+                            flash(f'Error: {response_data}', 'danger')
+                    else:
+                        arduino_response = "No response from transmitter"
+                        flash('Message sent but no confirmation received', 'warning')
+                        message_sent = True
+                        
                 except serial.SerialException as e:
                     error_message = f'Error sending message: {str(e)}'
             else:
@@ -139,7 +153,7 @@ def send_message():
         if error_message:
             flash(error_message, 'danger')
     
-    return render_template('send_message.html', message_sent=message_sent, frequency=f"{frequency:.3f}")
+    return render_template('send_message.html', message_sent=message_sent, arduino_response=arduino_response)
 
 @app.route('/logout')
 @login_required

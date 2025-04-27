@@ -354,6 +354,43 @@
         .form-col {
             flex: 1;
         }
+        
+        .transmission-status.error {
+            background-color: #fef2f2;
+            border-left: 4px solid var(--danger);
+        }
+        
+        .transmission-status.error h3 {
+            color: var(--danger);
+        }
+        
+        .arduino-response {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .arduino-response h4 {
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .arduino-response pre {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--dark);
+            background-color: #f1f5f9;
+            padding: 0.75rem;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -439,11 +476,26 @@
             </button>
         </form>
         
-        <!-- This section would be shown conditionally after a successful transmission -->
+        <!-- Add this section after the form -->
         {% if message_sent %}
         <div class="transmission-status">
             <h3><i class="fas fa-check-circle"></i> Transmission Successful</h3>
-            <p>Your message has been successfully transmitted to the pager address at {{ frequency }} MHz.</p>
+            <p>Your message has been successfully transmitted to the pager address.</p>
+            {% if arduino_response %}
+            <div class="arduino-response">
+                <h4>Transmitter Response:</h4>
+                <pre>{{ arduino_response }}</pre>
+            </div>
+            {% endif %}
+        </div>
+        {% elif arduino_response %}
+        <div class="transmission-status error">
+            <h3><i class="fas fa-exclamation-circle"></i> Transmission Failed</h3>
+            <p>There was an issue with your message transmission.</p>
+            <div class="arduino-response">
+                <h4>Transmitter Response:</h4>
+                <pre>{{ arduino_response }}</pre>
+            </div>
         </div>
         {% endif %}
         
