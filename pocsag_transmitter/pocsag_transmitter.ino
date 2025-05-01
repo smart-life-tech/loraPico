@@ -23,7 +23,7 @@ SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
-#define BITRATE 250.0   // 250 bps
+#define BITRATE 250.0    // 250 bps
 #define DEVIATION 4.5    // Â±4.5 kHz
 #define PREAMBLE_LEN 576 // 576 bits
 #define SYNC_WORD 0x7CD215D8
@@ -197,39 +197,19 @@ void loop()
 
             encode_pocsag(address, message, bitstream);
             digitalWrite(SX1262_ANT, HIGH); // Enable TX
-            
-            // Break the bitstream into chunks of 200 characters
-            const int CHUNK_SIZE = 200;
-            int len = strlen(bitstream);
-            int state = RADIOLIB_ERR_NONE;
-            
-            for (int i = 0; i < len; i += CHUNK_SIZE) {
-                int chunkLen = min(CHUNK_SIZE, len - i);
-                // Create a temporary buffer for this chunk
-                char chunk[CHUNK_SIZE + 1];
-                strncpy(chunk, bitstream + i, chunkLen);
-                chunk[chunkLen] = '\0';
-                
-                // Transmit this chunk
-                state = radio.transmit((uint8_t *)chunk, chunkLen, true);
-                
-                if (state != RADIOLIB_ERR_NONE) {
-                    Serial.print("Transmission error at chunk ");
-                    Serial.print(i / CHUNK_SIZE);
-                    Serial.print(": ");
-                    Serial.println(state);
-                    break;
-                }
-                
-                // Small delay between chunks
-                delay(10);
-            }
 
-            digitalWrite(SX1262_ANT, LOW); // Disable TX
+            // int state = radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
+            int state = radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
+            digitalWrite(SX1262_ANT, LOW);                                             // Disable TX
 
             if (state == RADIOLIB_ERR_NONE)
             {
                 Serial.println("Transmission complete! Message sent successfully.");
+            }
+            else
+            {
+                Serial.print("Transmission error: ");
+                Serial.println(state);
             }
         }
         else
