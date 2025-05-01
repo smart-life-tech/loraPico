@@ -1,7 +1,6 @@
 #include <RadioLib.h>
 #include <string.h>
-#include "SPInew.h"
-#include "SPIHelper.h"
+#include <SPI.h>
 
 // SX1262 pin definitions
 #define SX1262_CS 13   // GP13
@@ -123,7 +122,7 @@ void setup()
 
     // Initialize SPI with correct pins for Raspberry Pi Pico
     // Use the standard SPI.begin() method and configure pins separately
-    //SPI.begin();
+    // SPI.begin();
 
     // Set up GPIO pins for SPI manually
     pinMode(SX1262_SCK, OUTPUT);
@@ -131,11 +130,11 @@ void setup()
     pinMode(SX1262_MISO, INPUT);
     pinMode(SX1262_BUSY, INPUT);
     // Initialize SX1262
-    SPI.setRX(SX1262_MISO);
-    SPI.setCS(SX1262_CS);
-    SPI.setSCK(SX1262_SCK);
-    SPI.setTX(SX1262_MOSI);
-    SPI.begin(true);
+    // SPI.setRX(SX1262_MISO);
+    // SPI.setCS(SX1262_CS);
+    // SPI.setSCK(SX1262_SCK);
+    // SPI.setTX(SX1262_MOSI);
+    // SPI.begin(true);
     delay(1000);
 
     // When initializing the radio, you might need to specify a longer timeout
