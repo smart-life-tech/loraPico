@@ -147,7 +147,7 @@ void setup()
         while (true)
             ;
     }
-
+    Serial.println("SX1262 initialized successfully");
     // Configure SX1262 for FSK
     state = radio.setFrequency(FREQ);
     state |= radio.setBitRate(BITRATE);
@@ -162,10 +162,13 @@ void setup()
         while (true)
             ;
     }
-
+    Serial.println("SX1262 configured successfully");
+    // Set antenna switch pin (if needed)
     // Set antenna switch pin (if needed)
     pinMode(SX1262_ANT, OUTPUT);
     digitalWrite(SX1262_ANT, HIGH); // Enable TX
+    delay(1000);                    // Wait for the radio to stabilize
+    Serial.println("SX1262 ready");
 }
 
 void loop()
