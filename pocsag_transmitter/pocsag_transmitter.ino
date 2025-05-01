@@ -17,9 +17,9 @@
 // DIO1 pin:  2
 // NRST pin:  3
 // BUSY pin:  9
-SX1262 radio = new Module(13, 16, 23, 18, SPI1);
+// SX1262 radio = new Module(13, 16, 23, 18, SPI1);
 // SX1262 instance with SPI1
-// SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
+SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
@@ -125,18 +125,20 @@ void setup()
     // SPI.begin();
 
     // Set up GPIO pins for SPI manually
-    pinMode(SX1262_SCK, OUTPUT);
-    pinMode(SX1262_MOSI, OUTPUT);
-    pinMode(SX1262_MISO, INPUT);
-    pinMode(SX1262_BUSY, INPUT);
+    // pinMode(SX1262_SCK, OUTPUT);
+    //  pinMode(SX1262_MOSI, OUTPUT);
+    // pinMode(SX1262_MISO, INPUT);
+    // pinMode(SX1262_BUSY, INPUT);
     // Initialize SX1262
     SPI1.setRX(SX1262_MISO);
     SPI1.setCS(SX1262_CS);
     SPI1.setSCK(SX1262_SCK);
     SPI1.setTX(SX1262_MOSI);
-    SPI1.begin(true);
+    SPI1.begin();
+    Serial.println("SPI1 initialized");
     delay(1000);
-
+    // For XTAL (standard crystal)
+    radio.setTCXO(0); // Set TCXO voltage to 0V (standard crystal)
     // When initializing the radio, you might need to specify a longer timeout
     // int state = radio.beginFSK(RADIOLIB_SX126X_CHIP_TYPE_SX1262, 10000); // 10 second timeout
     int state = radio.beginFSK();
