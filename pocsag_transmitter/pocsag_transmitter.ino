@@ -141,7 +141,7 @@ void setup()
     radio.setTCXO(0); // Set TCXO voltage to 0V (standard crystal)
     // When initializing the radio, you might need to specify a longer timeout
     // int state = radio.beginFSK(RADIOLIB_SX126X_CHIP_TYPE_SX1262, 10000); // 10 second timeout
-    int state = radio.beginFSK();
+    int state = radio.beginFSK(0, 0, 0, 0, 0, 0, 0); // Last parameter is tcxoVoltage
     if (state != RADIOLIB_ERR_NONE)
     {
         Serial.print(F("SX1262 init failed, code "));
