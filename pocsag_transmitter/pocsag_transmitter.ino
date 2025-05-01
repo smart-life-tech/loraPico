@@ -12,21 +12,15 @@
 #define SX1262_ANT 17  // GP17 (Antenna switch)
 #define SX1262_DIO1 16 // GP16 (DIO1)
 
-// Pin definitions for RP2040-LoRa
-#define LORA_SCK 14    // GP10
-#define LORA_MISO 24   // GP8
-#define LORA_MOSI 15   // GP11
-#define LORA_SS 13     // GP9
-#define LORA_RST 23    // GP23
-#define LORA_DIO1 16   // GP16
-#define LORA_BUSY 18   // GP18
-#define LORA_ANT_SW 17 // GP17
+// SX1262 has the following connections:
+// NSS pin:   10
+// DIO1 pin:  2
+// NRST pin:  3
+// BUSY pin:  9
+SX1262 radio = new Module(13, 16, 23, 18);
+// SX1262 instance
 // SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
-// SPI instance for RP2040 (SPI1 is used)
-SPIClassRP2040 SPI1(spi1, LORA_MISO, -1, LORA_SCK, LORA_MOSI);
 
-// SX1262 module instance
-SX1262 radio = new Module(LORA_SS, LORA_DIO1, LORA_RST, LORA_BUSY, SPI1);
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
 #define BITRATE 1200.0   // 1200 bps
@@ -128,7 +122,7 @@ void setup()
 
     // Initialize SPI with correct pins for Raspberry Pi Pico
     // Use the standard SPI.begin() method and configure pins separately
-    SPI.begin();
+    // SPI.begin();
 
     // Set up GPIO pins for SPI manually
     pinMode(SX1262_SCK, OUTPUT);
@@ -136,11 +130,11 @@ void setup()
     pinMode(SX1262_MISO, INPUT);
     pinMode(SX1262_BUSY, INPUT);
     // Initialize SX1262
-    // SPI.setRX(SX1262_MISO);
-    // SPI.setCS(SX1262_CS);
-    // SPI.setSCK(SX1262_SCK);
-    // SPI.setTX(SX1262_MOSI);
-    // SPI.begin(true);
+    SPI.setRX(SX1262_MISO);
+    SPI.setCS(SX1262_CS);
+    SPI.setSCK(SX1262_SCK);
+    SPI.setTX(SX1262_MOSI);
+    SPI.begin(true);
     delay(1000);
 
     // When initializing the radio, you might need to specify a longer timeout
