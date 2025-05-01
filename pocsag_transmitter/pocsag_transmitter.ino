@@ -1,6 +1,7 @@
 #include <RadioLib.h>
 #include <string.h>
-#include <SPI.h>
+#include "SPI.h"
+#include "SPIHelper.h"
 
 // SX1262 pin definitions
 #define SX1262_CS 13   // GP13
