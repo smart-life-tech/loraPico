@@ -17,14 +17,10 @@
 // DIO1 pin:  2
 // NRST pin:  3
 // BUSY pin:  9
-// SX1262 radio = new Module(13, 16, 23, 18);
-// SX1262 instance
+SX1262 radio = new Module(13, 16, 23, 18, SPI1);
+// SX1262 instance with SPI1
 // SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
-// Use SPI1 for SX1262
-SPIClassRP2040 spi1(SPI1, SX1262_MISO, -1, SX1262_SCK, SX1262_MOSI);
 
-// SX1262 instance
-SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, spi1);
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
 #define BITRATE 1200.0   // 1200 bps
@@ -134,8 +130,11 @@ void setup()
     pinMode(SX1262_MISO, INPUT);
     pinMode(SX1262_BUSY, INPUT);
     // Initialize SX1262
-    // Initialize SPI1
-    spi1.begin();
+    SPI1.setRX(SX1262_MISO);
+    SPI1.setCS(SX1262_CS);
+    SPI1.setSCK(SX1262_SCK);
+    SPI1.setTX(SX1262_MOSI);
+    SPI1.begin(true);
     delay(1000);
 
     // When initializing the radio, you might need to specify a longer timeout
