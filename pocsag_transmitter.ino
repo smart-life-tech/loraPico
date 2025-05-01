@@ -11,8 +11,14 @@
 #define SX1262_BUSY 18 // GP18
 #define SX1262_ANT 17  // GP17 (Antenna switch)
 
+// SX1262 has the following connections:
+// NSS pin:   10
+// DIO1 pin:  2
+// NRST pin:  3
+// BUSY pin:  9
+SX1262 radio = new Module(13, 16, 23, 18);
 // SX1262 instance
-SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
+//SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
 
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
