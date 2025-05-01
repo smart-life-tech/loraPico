@@ -10,6 +10,7 @@
 #define SX1262_RST 23  // GP23
 #define SX1262_BUSY 18 // GP18
 #define SX1262_ANT 17  // GP17 (Antenna switch)
+#define SX1262_DIO1 16 // GP16 (DIO1)
 
 // SX1262 has the following connections:
 // NSS pin:   10
@@ -18,7 +19,7 @@
 // BUSY pin:  9
 SX1262 radio = new Module(13, 16, 23, 18);
 // SX1262 instance
-//SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
+// SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1);
 
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
@@ -121,7 +122,7 @@ void setup()
 
     // Initialize SPI with correct pins for Raspberry Pi Pico
     // Use the standard SPI.begin() method and configure pins separately
-    SPI.begin();
+    //SPI.begin();
 
     // Set up GPIO pins for SPI manually
     pinMode(SX1262_SCK, OUTPUT);
@@ -129,10 +130,15 @@ void setup()
     pinMode(SX1262_MISO, INPUT);
     pinMode(SX1262_BUSY, INPUT);
     // Initialize SX1262
+    SPI.setRX(SX1262_MISO);
+    SPI.setCS(SX1262_CS);
+    SPI.setSCK(SX1262_SCK);
+    SPI.setTX(SX1262_MOSI);
+    SPI.begin(true);
     delay(1000);
 
     // When initializing the radio, you might need to specify a longer timeout
-   // int state = radio.beginFSK(RADIOLIB_SX126X_CHIP_TYPE_SX1262, 10000); // 10 second timeout
+    // int state = radio.beginFSK(RADIOLIB_SX126X_CHIP_TYPE_SX1262, 10000); // 10 second timeout
     int state = radio.beginFSK();
     if (state != RADIOLIB_ERR_NONE)
     {
