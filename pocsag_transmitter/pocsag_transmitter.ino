@@ -24,7 +24,7 @@ SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 // POCSAG constants
 #define FREQ 930.0       // 930 MHz
 #define BITRATE 1200.0   // 1200 bps
-#define DEVIATION 4.5    // ±4.5 kHz
+#define DEVIATION 4.5    // Â±4.5 kHz
 #define PREAMBLE_LEN 576 // 576 bits
 #define SYNC_WORD 0x7CD215D8
 #define SYNC_WORD_LEN 32
@@ -141,7 +141,15 @@ void setup()
     radio.setTCXO(0); // Set TCXO voltage to 0V (standard crystal)
     // When initializing the radio, you might need to specify a longer timeout
     // int state = radio.beginFSK(RADIOLIB_SX126X_CHIP_TYPE_SX1262, 10000); // 10 second timeout
-    int state = radio.beginFSK(0, 0, 0, 0, 0, 0, 0); // Last parameter is tcxoVoltage
+    int state = radio.beginFSK(
+        930.0, // Carrier frequency: 930 MHz
+        1.2,   // Bit rate: 1.2 kbps (1200 bps)
+        4.5,   // Frequency deviation: 4.5 kHz
+        156.2, // Receiver bandwidth: 156.2 kHz (default)
+        10,    // Output power: 10 dBm
+        16,    // Preamble length: 16 bits (default)
+        0      // TCXO voltage: 0 for XTAL (adjust if using TCXO)
+    );
     if (state != RADIOLIB_ERR_NONE)
     {
         Serial.print(F("SX1262 init failed, code "));
