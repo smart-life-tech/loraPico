@@ -121,8 +121,12 @@ void setup()
     pinMode(SX1262_SCK, OUTPUT);
     pinMode(SX1262_MOSI, OUTPUT);
     pinMode(SX1262_MISO, INPUT);
-
+    pinMode(SX1262_BUSY, INPUT);
     // Initialize SX1262
+    delay(1000);
+
+    // When initializing the radio, you might need to specify a longer timeout
+   // int state = radio.beginFSK(RADIOLIB_SX126X_CHIP_TYPE_SX1262, 10000); // 10 second timeout
     int state = radio.beginFSK();
     if (state != RADIOLIB_ERR_NONE)
     {
@@ -165,22 +169,26 @@ void loop()
             Serial.print(address);
             Serial.print(" with message: ");
             Serial.println(message);
-            
+
             encode_pocsag(address, message, bitstream);
-            digitalWrite(SX1262_ANT, HIGH);                                // Enable TX
-            
+            digitalWrite(SX1262_ANT, HIGH); // Enable TX
+
             int state = radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
-            
-            digitalWrite(SX1262_ANT, LOW);                                 // Disable TX
-            
-            if (state == RADIOLIB_ERR_NONE) {
+
+            digitalWrite(SX1262_ANT, LOW); // Disable TX
+
+            if (state == RADIOLIB_ERR_NONE)
+            {
                 Serial.println("Transmission complete! Message sent successfully.");
-            } else {
+            }
+            else
+            {
                 Serial.print("Transmission error: ");
                 Serial.println(state);
             }
         }
-        else {
+        else
+        {
             Serial.println("Error: Invalid message format or message too long");
         }
     }
