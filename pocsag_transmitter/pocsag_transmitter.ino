@@ -180,7 +180,7 @@ void setup()
     delay(1000);                    // Wait for the radio to stabilize
     Serial.println("SX1262 ready");
     Serial.println("Testing SPI write...");
-    int state = radio.startTransmit((uint8_t *)"TEST", 4, true);
+    state = radio.startTransmit((uint8_t *)"TEST", 4, true);
     if (state != RADIOLIB_ERR_NONE)
     {
         Serial.print("Start transmit failed, code ");
@@ -189,17 +189,6 @@ void setup()
     }
     else{
         Serial.println("Start transmit successful");
-    }
-    state = radio.transmit((uint8_t *)"TEST", 4, true);
-    radio.finishTransmit();
-    if (state != RADIOLIB_ERR_NONE)
-    {
-        Serial.print("Transmit failed, code ");
-        Serial.println(state);
-    }
-    else
-    {
-        Serial.println("Transmit successful");
     }
 }
 
@@ -221,12 +210,13 @@ void loop()
             digitalWrite(SX1262_ANT, HIGH); // Enable TX
 
             // int state = radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
-            int state = radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
+            int state = radio.startTransmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
             digitalWrite(SX1262_ANT, LOW);                                             // Disable TX
 
             if (state == RADIOLIB_ERR_NONE)
             {
                 Serial.println("Transmission complete! Message sent successfully.");
+                radio.finishTransmit();
             }
             else
             {
