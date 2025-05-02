@@ -268,7 +268,7 @@ void loop()
 
                 if (state == RADIOLIB_ERR_NONE)
                 {
-                    Serial.print("Chunk sent successfully: ");
+                    Serial.print("Chunk sent : ");
                     Serial.print(sentBytes);
                     Serial.print(" to ");
                     Serial.println(sentBytes + chunkSize - 1);
