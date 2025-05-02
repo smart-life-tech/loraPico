@@ -29,7 +29,7 @@ SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 #define SYNC_WORD 0x7CD215D8
 #define SYNC_WORD_LEN 32
 #define MAX_MESSAGE_LEN 40
-#define MAX_PACKET_SIZE 25  // Maximum packet size for SX1262
+#define MAX_PACKET_SIZE 16 // Maximum packet size for SX1262
 // Buffer for bitstream
 char bitstream[2048]; // Large enough for preamble + message
 
@@ -59,7 +59,7 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
 
     // Clear the bitstream buffer first
     memset(bitstream, 0, 2048);
-    
+
     // Preamble: 576 bits of alternating 1 and 0
     for (int i = 0; i < PREAMBLE_LEN; i++)
     {
@@ -71,7 +71,8 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
     // Sync codeword: 32 bits
     char sync[33];
     uint32_t syncWord = SYNC_WORD;
-    for (int i = 31; i >= 0; i--) {
+    for (int i = 31; i >= 0; i--)
+    {
         bitstream[currentPos++] = ((syncWord >> i) & 1) ? '1' : '0';
     }
     bitstream[currentPos] = '\0';
@@ -80,7 +81,7 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
     uint32_t addr_codeword = (1 << 31) | ((address << 10) & 0x7FFFC00) | (0 << 8); // Flag bit 1, function 00
     uint32_t parity = calculate_bch_parity(addr_codeword >> 10);
     addr_codeword |= parity;
-    
+
     // Add even parity bit
     int ones = 0;
     for (int i = 0; i < 31; i++)
@@ -89,9 +90,10 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
             ones++;
     }
     addr_codeword |= (ones % 2) ? 0 : 1;
-    
+
     // Append to bitstream bit by bit
-    for (int i = 31; i >= 0; i--) {
+    for (int i = 31; i >= 0; i--)
+    {
         bitstream[currentPos++] = ((addr_codeword >> i) & 1) ? '1' : '0';
     }
     bitstream[currentPos] = '\0';
@@ -117,17 +119,19 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
                 ones++;
         }
         msg_codeword |= (ones % 2) ? 0 : 1;
-        
+
         // Append to bitstream bit by bit
-        for (int j = 31; j >= 0; j--) {
+        for (int j = 31; j >= 0; j--)
+        {
             bitstream[currentPos++] = ((msg_codeword >> j) & 1) ? '1' : '0';
         }
     }
     bitstream[currentPos] = '\0';
-    
+
     // Print the first 100 characters of the bitstream for debugging
     Serial.print(" bitstream (first 100 chars): ");
-    for (int i = 0; i < 100 && i < currentPos; i++) {
+    for (int i = 0; i < 100 && i < currentPos; i++)
+    {
         Serial.print(bitstream[i]);
     }
     Serial.println();
@@ -206,7 +210,8 @@ void setup()
         Serial.println(state);
         return;
     }
-    else{
+    else
+    {
         Serial.println("Start transmit successful");
     }
 }
@@ -218,7 +223,7 @@ void loop()
         String input = Serial.readStringUntil('\n');
         char *address = strtok((char *)input.c_str(), ":");
         char *message = strtok(NULL, "\n");
-        
+
         if (address && message && strlen(message) <= MAX_MESSAGE_LEN)
         {
             Serial.print("Transmitting to address: ");
@@ -227,7 +232,7 @@ void loop()
             Serial.println(message);
 
             encode_pocsag(address, message, bitstream);
-            
+
             // Get total length of bitstream
             size_t totalLength = strlen(bitstream);
             Serial.print("Total bitstream length: ");
@@ -237,44 +242,53 @@ void loop()
             // Enable TX
             digitalWrite(SX1262_ANT, HIGH);
             delay(100); // Give time for the switch to settle
-            
+
             // Send bitstream in chunks
             size_t sentBytes = 0;
             bool transmissionError = false;
-            
-            while (sentBytes < totalLength && !transmissionError) {
+
+            while (sentBytes < totalLength && !transmissionError)
+            {
+                // Add this before starting transmission
+                //radio.reset();
+                delay(100);
+
                 // Calculate size of next chunk
                 size_t chunkSize = min(MAX_PACKET_SIZE, totalLength - sentBytes);
-                
+
                 // Create temporary buffer for this chunk
                 uint8_t chunk[MAX_PACKET_SIZE];
                 memcpy(chunk, bitstream + sentBytes, chunkSize);
-                
+
                 Serial.print("Sending chunk of size: ");
                 Serial.println(chunkSize);
-                
+
                 // Transmit this chunk
-                int state = radio.transmit(chunk, chunkSize, true);
-                
-                if (state == RADIOLIB_ERR_NONE) {
+                int state = radio.startTransmit(chunk, chunkSize, true);
+
+                if (state == RADIOLIB_ERR_NONE)
+                {
                     Serial.print("Chunk sent successfully: ");
                     Serial.print(sentBytes);
                     Serial.print(" to ");
                     Serial.println(sentBytes + chunkSize - 1);
                     sentBytes += chunkSize;
-                } else {
+                }
+                else
+                {
                     Serial.print("Transmission error: ");
                     Serial.println(state);
                     transmissionError = true;
                 }
-                
+
                 // Small delay between chunks
                 delay(100);
             }
-            
+
             digitalWrite(SX1262_ANT, LOW); // Disable TX
-            
-            if (!transmissionError) {
+
+            if (!transmissionError)
+            {
                 Serial.println("Transmission complete! Message sent successfully.");
             }
         }
