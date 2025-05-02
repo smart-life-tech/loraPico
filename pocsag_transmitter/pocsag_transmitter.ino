@@ -57,22 +57,30 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
     uint32_t address = atol(address_str);
     address &= 0x1FFFFF; // 21-bit address
 
+    // Clear the bitstream buffer first
+    memset(bitstream, 0, 2048);
+    
     // Preamble: 576 bits of alternating 1 and 0
     for (int i = 0; i < PREAMBLE_LEN; i++)
     {
         bitstream[i] = (i % 2) ? '0' : '1';
     }
-    bitstream[PREAMBLE_LEN] = '\0';
+    int currentPos = PREAMBLE_LEN;
+    bitstream[currentPos] = '\0';
 
     // Sync codeword: 32 bits
     char sync[33];
-    snprintf(sync, sizeof(sync), "%032b", SYNC_WORD);
-    strcat(bitstream, sync);
+    uint32_t syncWord = SYNC_WORD;
+    for (int i = 31; i >= 0; i--) {
+        bitstream[currentPos++] = ((syncWord >> i) & 1) ? '1' : '0';
+    }
+    bitstream[currentPos] = '\0';
 
-    // Address codeword: 32 bits (2 flag bits, 18 address bits, 1 function bit, 10 parity bits, 1 even parity)
+    // Address codeword: 32 bits
     uint32_t addr_codeword = (1 << 31) | ((address << 10) & 0x7FFFC00) | (0 << 8); // Flag bit 1, function 00
     uint32_t parity = calculate_bch_parity(addr_codeword >> 10);
     addr_codeword |= parity;
+    
     // Add even parity bit
     int ones = 0;
     for (int i = 0; i < 31; i++)
@@ -81,13 +89,14 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
             ones++;
     }
     addr_codeword |= (ones % 2) ? 0 : 1;
-    // Append to bitstream
-    char addr_bits[33];
-    snprintf(addr_bits, sizeof(addr_bits), "%032b", addr_codeword);
-    strcat(bitstream, addr_bits);
+    
+    // Append to bitstream bit by bit
+    for (int i = 31; i >= 0; i--) {
+        bitstream[currentPos++] = ((addr_codeword >> i) & 1) ? '1' : '0';
+    }
+    bitstream[currentPos] = '\0';
 
     // Message codeword(s)
-    char msg_bits[1024] = "";
     int msg_len = strlen(message);
     for (int i = 0; i < msg_len; i += 2)
     {
@@ -108,10 +117,20 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
                 ones++;
         }
         msg_codeword |= (ones % 2) ? 0 : 1;
-        snprintf(addr_bits, sizeof(addr_bits), "%032b", msg_codeword);
-        strcat(msg_bits, addr_bits);
+        
+        // Append to bitstream bit by bit
+        for (int j = 31; j >= 0; j--) {
+            bitstream[currentPos++] = ((msg_codeword >> j) & 1) ? '1' : '0';
+        }
     }
-    strcat(bitstream, msg_bits);
+    bitstream[currentPos] = '\0';
+    
+    // Print the first 100 characters of the bitstream for debugging
+    Serial.print(" bitstream (first 100 chars): ");
+    for (int i = 0; i < 100 && i < currentPos; i++) {
+        Serial.print(bitstream[i]);
+    }
+    Serial.println();
 }
 
 void setup()
