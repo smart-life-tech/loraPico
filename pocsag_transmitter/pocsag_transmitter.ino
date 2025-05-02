@@ -169,7 +169,7 @@ void setup()
         while (true)
             ;
     }
-    Serial.println("SX1262 initialized successfully");
+    Serial.println("SX1262 initialized");
 
     // Configure SX1262 for FSK
     state = radio.setFrequency(currentFrequency); // Use the global variable
@@ -185,7 +185,7 @@ void setup()
         while (true)
             ;
     }
-    Serial.println("SX1262 configured successfully");
+    Serial.println("SX1262 configured");
 
     // Set antenna switch pin
     pinMode(SX1262_ANT, OUTPUT);
@@ -203,7 +203,7 @@ void setup()
     }
     else
     {
-        Serial.println("Start transmit successful");
+        Serial.println("Start transmit done");
     }
 
     // Add a delay before transmitting
@@ -218,7 +218,7 @@ void setup()
     }
     else
     {
-        Serial.println("Transmit successful");
+        Serial.println("Transmit done");
     }
 }
 
@@ -255,7 +255,7 @@ void loop()
                 }
                 else
                 {
-                    Serial.println("Frequency set successfully");
+                    Serial.println("Frequency set done");
                 }
 
                 encode_pocsag(address, message, bitstream);
@@ -310,7 +310,7 @@ void loop()
                     // Small delay between chunks
                     delay(100);
                 }
-
+                Serial.println("Transmission complete successfully.");
                 digitalWrite(SX1262_ANT, LOW); // Disable TX
             }
             else
