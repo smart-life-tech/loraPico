@@ -245,7 +245,7 @@ void loop()
                 Serial.print(" with message: ");
                 Serial.print(message);
                 Serial.print(" at frequency: ");
-                Serial.println(currentFrequency);
+                Serial.println(currentFrequency, 4);
 
                 // Reconfigure the radio with the new frequency
                 int state = radio.setFrequency(currentFrequency);
@@ -313,7 +313,7 @@ void loop()
                     radio.finishTransmit(); // Finish the transmission
                 }
                 Serial.println("Transmission complete successfully.");
-                radio.finishTransmit(); // Finish the transmission
+                radio.finishTransmit();        // Finish the transmission
                 digitalWrite(SX1262_ANT, LOW); // Disable TX
             }
             else
