@@ -29,7 +29,7 @@ SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 #define SYNC_WORD 0x7CD215D8
 #define SYNC_WORD_LEN 32
 #define MAX_MESSAGE_LEN 40
-
+#define MAX_PACKET_SIZE 255  // Maximum packet size for SX1262
 // Buffer for bitstream
 char bitstream[2048]; // Large enough for preamble + message
 
@@ -199,6 +199,7 @@ void loop()
         String input = Serial.readStringUntil('\n');
         char *address = strtok((char *)input.c_str(), ":");
         char *message = strtok(NULL, "\n");
+        
         if (address && message && strlen(message) <= MAX_MESSAGE_LEN)
         {
             Serial.print("Transmitting to address: ");
@@ -207,21 +208,54 @@ void loop()
             Serial.println(message);
 
             encode_pocsag(address, message, bitstream);
-            digitalWrite(SX1262_ANT, HIGH); // Enable TX
-
-            // int state = radio.transmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
-            int state = radio.startTransmit((uint8_t *)bitstream, strlen(bitstream), true); // Send raw bits
-            digitalWrite(SX1262_ANT, LOW);                                             // Disable TX
-
-            if (state == RADIOLIB_ERR_NONE)
-            {
-                Serial.println("Transmission complete! Message sent successfully.");
-                radio.finishTransmit();
+            
+            // Get total length of bitstream
+            size_t totalLength = strlen(bitstream);
+            Serial.print("Total bitstream length: ");
+            Serial.println(totalLength);
+            
+            // Enable TX
+            digitalWrite(SX1262_ANT, HIGH);
+            delay(100); // Give time for the switch to settle
+            
+            // Send bitstream in chunks
+            size_t sentBytes = 0;
+            bool transmissionError = false;
+            
+            while (sentBytes < totalLength && !transmissionError) {
+                // Calculate size of next chunk
+                size_t chunkSize = min(MAX_PACKET_SIZE, totalLength - sentBytes);
+                
+                // Create temporary buffer for this chunk
+                uint8_t chunk[MAX_PACKET_SIZE];
+                memcpy(chunk, bitstream + sentBytes, chunkSize);
+                
+                Serial.print("Sending chunk of size: ");
+                Serial.println(chunkSize);
+                
+                // Transmit this chunk
+                int state = radio.transmit(chunk, chunkSize, true);
+                
+                if (state == RADIOLIB_ERR_NONE) {
+                    Serial.print("Chunk sent successfully: ");
+                    Serial.print(sentBytes);
+                    Serial.print(" to ");
+                    Serial.println(sentBytes + chunkSize - 1);
+                    sentBytes += chunkSize;
+                } else {
+                    Serial.print("Transmission error: ");
+                    Serial.println(state);
+                    transmissionError = true;
+                }
+                
+                // Small delay between chunks
+                delay(100);
             }
-            else
-            {
-                Serial.print("Transmission error: ");
-                Serial.println(state);
+            
+            digitalWrite(SX1262_ANT, LOW); // Disable TX
+            
+            if (!transmissionError) {
+                Serial.println("Transmission complete! Message sent successfully.");
             }
         }
         else
