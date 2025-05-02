@@ -12,17 +12,11 @@
 #define SX1262_ANT 17  // GP17 (Antenna switch)
 #define SX1262_DIO1 16 // GP16 (DIO1)
 
-// SX1262 has the following connections:
-// NSS pin:   10
-// DIO1 pin:  2
-// NRST pin:  3
-// BUSY pin:  9
-// SX1262 radio = new Module(13, 16, 23, 18, SPI1);
 // SX1262 instance with SPI1
 SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 
 // POCSAG constants
-#define FREQ 930.0       // 930 MHz
+#define FREQ 930.0       // 930 MHz - Default Frequency
 #define BITRATE 250.0    // 250 bps
 #define DEVIATION 4.5    // Â±4.5 kHz
 #define PREAMBLE_LEN 576 // 576 bits
@@ -30,8 +24,12 @@ SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 #define SYNC_WORD_LEN 32
 #define MAX_MESSAGE_LEN 40
 #define MAX_PACKET_SIZE 16 // Maximum packet size for SX1262
+
 // Buffer for bitstream
 char bitstream[2048]; // Large enough for preamble + message
+
+// Global variable for frequency
+float currentFrequency = FREQ;
 
 // BCH(31,21) parity generation for POCSAG
 uint32_t calculate_bch_parity(uint32_t data)
@@ -140,19 +138,9 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
 void setup()
 {
     Serial.begin(115200);
-    while (!Serial)
-        ;
+    while (!Serial);
 
-    // Initialize SPI with correct pins for Raspberry Pi Pico
-    // Use the standard SPI.begin() method and configure pins separately
-    // SPI.begin();
-
-    // Set up GPIO pins for SPI manually
-    // pinMode(SX1262_SCK, OUTPUT);
-    //  pinMode(SX1262_MOSI, OUTPUT);
-    // pinMode(SX1262_MISO, INPUT);
-    // pinMode(SX1262_BUSY, INPUT);
-    // Initialize SX1262
+    // Initialize SPI with correct pins
     SPI1.setRX(SX1262_MISO);
     SPI1.setCS(SX1262_CS);
     SPI1.setSCK(SX1262_SCK);
@@ -160,12 +148,12 @@ void setup()
     SPI1.begin();
     Serial.println("SPI1 initialized");
     delay(1000);
+
     // For XTAL (standard crystal)
     radio.setTCXO(0); // Set TCXO voltage to 0V (standard crystal)
-    // When initializing the radio, you might need to specify a longer timeout
-    // int state = radio.beginFSK(RADIOLIB_SX126X_CHIP_TYPE_SX1262, 10000); // 10 second timeout
+
     int state = radio.beginFSK(
-        930.0, // Carrier frequency: 930 MHz
+        currentFrequency, // Carrier frequency: 930 MHz - Use the global variable
         1.2,   // Bit rate: 1.2 kbps (1200 bps)
         4.5,   // Frequency deviation: 4.5 kHz
         156.2, // Receiver bandwidth: 156.2 kHz (default)
@@ -177,12 +165,12 @@ void setup()
     {
         Serial.print(F("SX1262 init failed, code "));
         Serial.println(state);
-        while (true)
-            ;
+        while (true);
     }
     Serial.println("SX1262 initialized successfully");
+
     // Configure SX1262 for FSK
-    state = radio.setFrequency(FREQ);
+    state = radio.setFrequency(currentFrequency); // Use the global variable
     state |= radio.setBitRate(BITRATE);
     state |= radio.setFrequencyDeviation(DEVIATION);
     state |= radio.setOutputPower(10); // Low power for short range
@@ -192,16 +180,16 @@ void setup()
     {
         Serial.print(F("SX1262 config failed, code "));
         Serial.println(state);
-        while (true)
-            ;
+        while (true);
     }
     Serial.println("SX1262 configured successfully");
-    // Set antenna switch pin (if needed)
-    // Set antenna switch pin (if needed)
+
+    // Set antenna switch pin
     pinMode(SX1262_ANT, OUTPUT);
     digitalWrite(SX1262_ANT, HIGH); // Enable TX
     delay(1000);                    // Wait for the radio to stabilize
     Serial.println("SX1262 ready");
+
     Serial.println("Testing SPI write...");
     state = radio.startTransmit((uint8_t *)"TEST", 4, true);
     if (state != RADIOLIB_ERR_NONE)
@@ -214,6 +202,21 @@ void setup()
     {
         Serial.println("Start transmit successful");
     }
+
+    // Add a delay before transmitting
+    delay(500);
+
+    state = radio.transmit((uint8_t *)"TEST", 4, true);
+    radio.finishTransmit();
+    if (state != RADIOLIB_ERR_NONE)
+    {
+        Serial.print("Transmit failed, code ");
+        Serial.println(state);
+    }
+    else
+    {
+        Serial.println("Transmit successful");
+    }
 }
 
 void loop()
@@ -222,79 +225,79 @@ void loop()
     {
         String input = Serial.readStringUntil('\n');
         char *address = strtok((char *)input.c_str(), ":");
-        char *message = strtok(NULL, "\n");
+        char *message = strtok(NULL, ":");
+        char *frequency_str = strtok(NULL, "\n");
 
-        if (address && message && strlen(message) <= MAX_MESSAGE_LEN)
+        if (address && message && frequency_str)
         {
-            Serial.print("Transmitting to address: ");
-            Serial.print(address);
-            Serial.print(" with message: ");
-            Serial.println(message);
+            float newFrequency = atof(frequency_str);
 
-            encode_pocsag(address, message, bitstream);
-
-            // Get total length of bitstream
-            size_t totalLength = strlen(bitstream);
-            Serial.print("Total bitstream length: ");
-            Serial.println(totalLength);
-            Serial.print(" bitstream : ");
-            Serial.println(bitstream);
-            // Enable TX
-            digitalWrite(SX1262_ANT, HIGH);
-            delay(100); // Give time for the switch to settle
-
-            // Send bitstream in chunks
-            size_t sentBytes = 0;
-            bool transmissionError = false;
-
-            while (sentBytes < totalLength && !transmissionError)
+            if (newFrequency >= 929.0 && newFrequency <= 932.0)
             {
-                // Add this before starting transmission
-                //radio.reset();
-                delay(100);
+                currentFrequency = newFrequency;
 
-                // Calculate size of next chunk
-                size_t chunkSize = min(MAX_PACKET_SIZE, totalLength - sentBytes);
+                Serial.print("Transmitting to address: ");
+                Serial.print(address);
+                Serial.print(" with message: ");
+                Serial.print(message);
+                Serial.print(" at frequency: ");
+                Serial.println(currentFrequency);
 
-                // Create temporary buffer for this chunk
-                uint8_t chunk[MAX_PACKET_SIZE];
-                memcpy(chunk, bitstream + sentBytes, chunkSize);
-
-                Serial.print("Sending chunk of size: ");
-                Serial.println(chunkSize);
-
-                // Transmit this chunk
-                int state = radio.startTransmit(chunk, chunkSize, true);
-
-                if (state == RADIOLIB_ERR_NONE)
+                // Reconfigure the radio with the new frequency
+                int state = radio.setFrequency(currentFrequency);
+                if (state != RADIOLIB_ERR_NONE)
                 {
-                    Serial.print("Chunk sent : ");
-                    Serial.print(sentBytes);
-                    Serial.print(" to ");
-                    Serial.println(sentBytes + chunkSize - 1);
-                    sentBytes += chunkSize;
+                    Serial.print("Failed to set frequency: ");
+                    Serial.println(state);
                 }
                 else
                 {
-                    Serial.print("Transmission error: ");
-                    Serial.println(state);
-                    transmissionError = true;
+                    Serial.println("Frequency set successfully");
                 }
 
-                // Small delay between chunks
-                delay(100);
+                encode_pocsag(address, message, bitstream);
+
+                // Get total length of bitstream
+                size_t totalLength = strlen(bitstream);
+                Serial.print("Total bitstream length: ");
+                Serial.println(totalLength);
+
+                // Enable TX
+                digitalWrite(SX1262_ANT, HIGH);
+                delay(100); // Give time for the switch to settle
+
+                // Try using startTransmit and finishTransmit instead of transmit
+                state = radio.startTransmit((uint8_t *)bitstream, strlen(bitstream), true);
+                if (state != RADIOLIB_ERR_NONE)
+                {
+                    Serial.print("Start transmission error: ");
+                    Serial.println(state);
+                }
+                else
+                {
+                    // Wait for transmission to complete
+                    state = radio.finishTransmit();
+                    if (state == RADIOLIB_ERR_NONE)
+                    {
+                        Serial.println("Transmission complete! Message sent successfully.");
+                    }
+                    else
+                    {
+                        Serial.print("Finish transmission error: ");
+                        Serial.println(state);
+                    }
+                }
+
+                digitalWrite(SX1262_ANT, LOW); // Disable TX
             }
-
-            digitalWrite(SX1262_ANT, LOW); // Disable TX
-
-            if (!transmissionError)
+            else
             {
-                Serial.println("Transmission complete! Message sent successfully.");
+                Serial.println("Error: Invalid frequency. Must be between 929.0 and 932.0 MHz.");
             }
         }
         else
         {
-            Serial.println("Error: Invalid message format or message too long");
+            Serial.println("Error: Invalid message format.  Expected address:message:frequency");
         }
     }
 }

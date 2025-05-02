@@ -27,16 +27,17 @@ def find_pico_port():
 # Find the Pico port
 pico_port = find_pico_port()
 
+ser = None  # Initialize ser to None
 if pico_port:
     try:
         ser = serial.Serial(pico_port, 115200, timeout=1)
         print(f"Connected to Pico on port: {pico_port}")
     except serial.SerialException as e:
         print(f"Error connecting to Pico on port {pico_port}: {e}")
-        ser = None  # Ensure ser is None if connection fails
+        flash(f"Error connecting to Pico on port {pico_port}: {e}", 'danger')
 else:
     print("Pico not found. Please ensure it is connected and recognized by the system.")
-    ser = None  # Ensure ser is None if Pico is not found
+    flash("Pico not found. Please ensure it is connected and recognized by the system.", 'danger')
 
 # User class for Flask-Login
 class User(UserMixin):
@@ -122,10 +123,12 @@ def send_message():
     if request.method == 'POST':
         address = request.form['address']
         message = request.form['message']
+        frequency = request.form['frequency']
         
         # Improved input validation
         if not address.isdigit():
-            error_message = 'Address must contain only numbers'
+            flash("Address must be a number", 'danger')
+            return render_template('send_message.html', message_sent=message_sent, arduino_response=arduino_response)
         elif int(address) <= 0:
             error_message = 'Address must be a positive number'
         elif len(message) > 40:
@@ -136,7 +139,7 @@ def send_message():
             # Send to RP2040
             if ser is not None and ser.is_open:
                 try:
-                    command = f"{address}:{message}\n"
+                    command = f"{address}:{message}:{frequency}\n"
                     ser.write(command.encode())
                     ser.flush()
                     
