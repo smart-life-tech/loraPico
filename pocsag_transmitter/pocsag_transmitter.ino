@@ -146,6 +146,7 @@ void setup()
     SPI1.setCS(SX1262_CS);
     SPI1.setSCK(SX1262_SCK);
     SPI1.setTX(SX1262_MOSI);
+    SPI1.setClock(4000000); // 4 MHz clock speed
     SPI1.begin();
     Serial.println("SPI1 initialized");
     delay(1000);
@@ -309,8 +310,10 @@ void loop()
 
                     // Small delay between chunks
                     delay(100);
+                    radio.finishTransmit(); // Finish the transmission
                 }
                 Serial.println("Transmission complete successfully.");
+                radio.finishTransmit(); // Finish the transmission
                 digitalWrite(SX1262_ANT, LOW); // Disable TX
             }
             else
