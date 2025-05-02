@@ -138,7 +138,8 @@ void encode_pocsag(const char *address_str, const char *message, char *bitstream
 void setup()
 {
     Serial.begin(115200);
-    while (!Serial);
+    while (!Serial)
+        ;
 
     // Initialize SPI with correct pins
     SPI1.setRX(SX1262_MISO);
@@ -154,18 +155,19 @@ void setup()
 
     int state = radio.beginFSK(
         currentFrequency, // Carrier frequency: 930 MHz - Use the global variable
-        1.2,   // Bit rate: 1.2 kbps (1200 bps)
-        4.5,   // Frequency deviation: 4.5 kHz
-        156.2, // Receiver bandwidth: 156.2 kHz (default)
-        10,    // Output power: 10 dBm
-        16,    // Preamble length: 16 bits (default)
-        0      // TCXO voltage: 0 for XTAL (adjust if using TCXO)
+        1.2,              // Bit rate: 1.2 kbps (1200 bps)
+        4.5,              // Frequency deviation: 4.5 kHz
+        156.2,            // Receiver bandwidth: 156.2 kHz (default)
+        10,               // Output power: 10 dBm
+        16,               // Preamble length: 16 bits (default)
+        0                 // TCXO voltage: 0 for XTAL (adjust if using TCXO)
     );
     if (state != RADIOLIB_ERR_NONE)
     {
         Serial.print(F("SX1262 init failed, code "));
         Serial.println(state);
-        while (true);
+        while (true)
+            ;
     }
     Serial.println("SX1262 initialized successfully");
 
@@ -180,7 +182,8 @@ void setup()
     {
         Serial.print(F("SX1262 config failed, code "));
         Serial.println(state);
-        while (true);
+        while (true)
+            ;
     }
     Serial.println("SX1262 configured successfully");
 
@@ -266,26 +269,46 @@ void loop()
                 digitalWrite(SX1262_ANT, HIGH);
                 delay(100); // Give time for the switch to settle
 
-                // Try using startTransmit and finishTransmit instead of transmit
-                state = radio.startTransmit((uint8_t *)bitstream, strlen(bitstream), true);
-                if (state != RADIOLIB_ERR_NONE)
+                // Send bitstream in chunks
+                size_t sentBytes = 0;
+                bool transmissionError = false;
+
+                while (sentBytes < totalLength && !transmissionError)
                 {
-                    Serial.print("Start transmission error: ");
-                    Serial.println(state);
-                }
-                else
-                {
-                    // Wait for transmission to complete
-                    state = radio.finishTransmit();
+                    // Add this before starting transmission
+                    // radio.reset();
+                    delay(100);
+
+                    // Calculate size of next chunk
+                    size_t chunkSize = min(MAX_PACKET_SIZE, totalLength - sentBytes);
+
+                    // Create temporary buffer for this chunk
+                    uint8_t chunk[MAX_PACKET_SIZE];
+                    memcpy(chunk, bitstream + sentBytes, chunkSize);
+
+                    Serial.print("Sending chunk of size: ");
+                    Serial.println(chunkSize);
+
+                    // Transmit this chunk
+                    int state = radio.startTransmit(chunk, chunkSize, true);
+
                     if (state == RADIOLIB_ERR_NONE)
                     {
-                        Serial.println("Transmission complete! Message sent successfully.");
+                        Serial.print("Chunk sent : ");
+                        Serial.print(sentBytes);
+                        Serial.print(" to ");
+                        Serial.println(sentBytes + chunkSize - 1);
+                        sentBytes += chunkSize;
                     }
                     else
                     {
-                        Serial.print("Finish transmission error: ");
+                        Serial.print("Transmission error: ");
                         Serial.println(state);
+                        transmissionError = true;
                     }
+
+                    // Small delay between chunks
+                    delay(100);
                 }
 
                 digitalWrite(SX1262_ANT, LOW); // Disable TX
