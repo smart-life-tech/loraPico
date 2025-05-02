@@ -179,6 +179,28 @@ void setup()
     digitalWrite(SX1262_ANT, HIGH); // Enable TX
     delay(1000);                    // Wait for the radio to stabilize
     Serial.println("SX1262 ready");
+    Serial.println("Testing SPI write...");
+    int state = radio.startTransmit((uint8_t *)"TEST", 4, true);
+    if (state != RADIOLIB_ERR_NONE)
+    {
+        Serial.print("Start transmit failed, code ");
+        Serial.println(state);
+        return;
+    }
+    else{
+        Serial.println("Start transmit successful");
+    }
+    state = radio.transmit((uint8_t *)"TEST", 4, true);
+    radio.finishTransmit();
+    if (state != RADIOLIB_ERR_NONE)
+    {
+        Serial.print("Transmit failed, code ");
+        Serial.println(state);
+    }
+    else
+    {
+        Serial.println("Transmit successful");
+    }
 }
 
 void loop()
