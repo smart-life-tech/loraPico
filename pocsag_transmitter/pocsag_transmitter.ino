@@ -29,7 +29,7 @@ SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 #define SYNC_WORD 0x7CD215D8
 #define SYNC_WORD_LEN 32
 #define MAX_MESSAGE_LEN 40
-#define MAX_PACKET_SIZE 255  // Maximum packet size for SX1262
+#define MAX_PACKET_SIZE 25  // Maximum packet size for SX1262
 // Buffer for bitstream
 char bitstream[2048]; // Large enough for preamble + message
 
@@ -213,7 +213,8 @@ void loop()
             size_t totalLength = strlen(bitstream);
             Serial.print("Total bitstream length: ");
             Serial.println(totalLength);
-            
+            Serial.print(" bitstream : ");
+            Serial.println(bitstream);
             // Enable TX
             digitalWrite(SX1262_ANT, HIGH);
             delay(100); // Give time for the switch to settle
