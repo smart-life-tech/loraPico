@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import serial
+import serial.tools.list_ports
 import hashlib
 import os
 import time
@@ -10,14 +11,32 @@ app = Flask(__name__)
 # Use a secure random key instead of hardcoded value
 app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
 
-# Serial port configuration with better error handling
-ser = None
-try:
-    ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
-    print("Successfully connected to serial port.")
-except serial.SerialException as e:
-    print(f"Error: Could not open serial port. {str(e)}")
-    print("The application will start, but message sending will be disabled.")
+def find_pico_port():
+    """
+    Automatically searches for an available serial port that is likely connected to a Raspberry Pi Pico.
+    It identifies the port based on the description containing "Pico".
+    Returns the port name if found, otherwise returns None.
+    """
+    ports = list(serial.tools.list_ports.comports())
+    for port in ports:
+        print(f"Found port: {port.device}, Description: {port.description}")
+        if "Pico" in port.description:
+            return port.device
+    return None
+
+# Find the Pico port
+pico_port = find_pico_port()
+
+if pico_port:
+    try:
+        ser = serial.Serial(pico_port, 115200, timeout=1)
+        print(f"Connected to Pico on port: {pico_port}")
+    except serial.SerialException as e:
+        print(f"Error connecting to Pico on port {pico_port}: {e}")
+        ser = None  # Ensure ser is None if connection fails
+else:
+    print("Pico not found. Please ensure it is connected and recognized by the system.")
+    ser = None  # Ensure ser is None if Pico is not found
 
 # User class for Flask-Login
 class User(UserMixin):
