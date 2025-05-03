@@ -155,10 +155,10 @@ void setup()
 
     int state = radio.beginFSK(
         currentFrequency, // Carrier frequency: 930 MHz - Use the global variable
-        1.2,              // Bit rate: 1.2 kbps (1200 bps)
-        4.5,              // Frequency deviation: 4.5 kHz
+        2.4,              // Bit rate: 1.2 kbps (1200 bps)
+        1,              // Frequency deviation: 4.5 kHz
         156.2,            // Receiver bandwidth: 156.2 kHz (default)
-        10,               // Output power: 10 dBm
+        22,               // Output power: 10 dBm
         16,               // Preamble length: 16 bits (default)
         0                 // TCXO voltage: 0 for XTAL (adjust if using TCXO)
     );
