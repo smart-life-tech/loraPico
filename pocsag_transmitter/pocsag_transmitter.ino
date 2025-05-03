@@ -16,7 +16,7 @@
 SX1262 radio = new Module(SX1262_CS, SX1262_BUSY, SX1262_RST, -1, SPI1);
 
 // POCSAG constants
-#define FREQ 930.0       // 930 MHz - Default Frequency
+#define FREQ 929.5525       // 930 MHz - Default Frequency
 #define BITRATE 250.0    // 250 bps
 #define DEVIATION 4.5    // Â±4.5 kHz
 #define PREAMBLE_LEN 576 // 576 bits
